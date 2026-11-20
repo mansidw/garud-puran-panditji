@@ -1,11 +1,22 @@
+"""Retrieval-only debug tool (no LLM call): shows what the hybrid search + parent
+document expansion return for a question.
+
+Usage:
+    python vectorization_job/validation_script.py "Can the girls perform shraddha?"
+    python vectorization_job/validation_script.py            # runs the sample question
+"""
+
 import os
+import sys
+
 import psycopg2
-import json
 from dotenv import load_dotenv
 from langchain_ollama import OllamaEmbeddings
 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
+
+SAMPLE_QUESTION = "Can the girls perform shraddha?"
 
 
 def get_full_shlok_context(cursor, shlok_ref, chapter_title):
@@ -27,9 +38,13 @@ def get_full_shlok_context(cursor, shlok_ref, chapter_title):
 
 
 def verify_expanded_retrieval(user_question):
-    embeddings_model = OllamaEmbeddings(model="qwen3-embedding")
+    embeddings_model = OllamaEmbeddings(
+        model=os.getenv("OLLAMA_EMBEDDING_MODEL", "qwen3-embedding")
+    )
     query_vector = embeddings_model.embed_query(user_question)
 
+    conn = None
+    cursor = None
     try:
         conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
@@ -64,6 +79,9 @@ def verify_expanded_retrieval(user_question):
             print(f"Full Context Length: {len(full_text)} characters")
             print(f"Snippet: {full_text[:300]}...")
 
+        if not expanded_contexts:
+            print("No rows returned - is the table populated? (run vectorize_load_vectors.py)")
+
         return expanded_contexts
 
     except Exception as e:
@@ -75,14 +93,9 @@ def verify_expanded_retrieval(user_question):
             conn.close()
 
 
-# Test the expanded logic
-# verify_expanded_retrieval(
-#     "What are the duties of a son when a parent is on their death bed?"
-# )
-# Test with a keyword-heavy question
-# verify_expanded_retrieval("Who is Sudeva and how did Bhabruvahana help him?")
-# verify_expanded_retrieval("When does a person become an ant in next life?")
-# verify_expanded_retrieval(
-#     "The pinds that are created for shraddha rituals are made up of what material?"
-# )
-verify_expanded_retrieval("Can the girls perform shraddha?")
+if __name__ == "__main__":
+    if not DATABASE_URL:
+        raise SystemExit("DATABASE_URL is not set. Copy .env.example to .env first.")
+    question = " ".join(sys.argv[1:]).strip() or SAMPLE_QUESTION
+    verify_expanded_retrieval(question)
+

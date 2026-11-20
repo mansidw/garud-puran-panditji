@@ -1,0 +1,20 @@
+# Core web layer
+Flask==3.1.2
+python-dotenv==1.2.1
+
+# Database (Supabase / PostgreSQL + pgvector)
+# If you do not have C build tools on Windows, install psycopg2-binary==2.9.11 instead.
+psycopg2==2.9.11
+
+# LLM + embeddings (local Ollama)
+ollama==0.6.1
+langchain-ollama==1.0.1
+langchain-core==1.2.7
+
+# PDF ingestion / chunking
+langchain-community==0.4.1
+langchain-text-splitters==1.1.0
+pypdf==6.6.1
+
+# Numeric helpers used by embedding payloads
+numpy==2.4.1
